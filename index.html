@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRPG Character Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+JP:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --accent: #8B2FC9;
+    --accent-light: #c87df5;
+    --accent-dark: #5a1a8a;
+    --accent-10: rgba(139,47,201,0.1);
+    --accent-20: rgba(139,47,201,0.2);
+    --accent-40: rgba(139,47,201,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f0ede8;
+    font-family: 'Noto Serif JP', serif;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ===== EDITOR PANEL ===== */
+  .editor {
+    max-width: 900px;
+    margin: 0 auto 30px;
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .editor h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 8px;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .input-group label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #666;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .input-group input, .input-group textarea {
+    border: 1.5px solid #e0ddd8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    transition: border-color 0.2s;
+    background: #fafaf8;
+  }
+
+  .input-group input:focus, .input-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: white;
+  }
+
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .color-row label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #666;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .color-row input[type="color"] {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 2px;
+    background: #fafaf8;
+    border: 1.5px solid #e0ddd8;
+  }
+
+  .color-row input[type="text"] {
+    border: 1.5px solid #e0ddd8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    width: 120px;
+    background: #fafaf8;
+  }
+
+  .json-area {
+    width: 100%;
+    height: 120px;
+    border: 1.5px solid #e0ddd8;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #444;
+    resize: vertical;
+    background: #fafaf8;
+    margin-bottom: 12px;
+  }
+
+  .json-area:focus { outline: none; border-color: var(--accent); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: white;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+  }
+  .btn-secondary:hover { background: var(--accent-10); }
+
+  .btn-download {
+    background: #1a1a1a;
+    color: white;
+    margin-left: auto;
+  }
+  .btn-download:hover { background: #333; }
+
+  /* ===== SKILL SELECTOR ===== */
+  .skill-selector {
+    margin-top: 16px;
+    display: none;
+  }
+
+  .skill-selector h3 {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #666;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 10px;
+  }
+
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #fafaf8;
+    border: 1.5px solid #e0ddd8;
+    border-radius: 6px;
+  }
+
+  .skill-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .skill-check input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ===== CHARACTER CARD ===== */
+  #card-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+  }
+
+  #character-card {
+    width: 800px;
+    height: 800px;
+    background: white;
+    position: relative;
+    overflow: hidden;
+    display: none;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  /* Background geometric pattern */
+  .card-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .card-bg::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: var(--accent-10);
+  }
+
+  .card-bg::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: -80px;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: var(--accent-10);
+  }
+
+  .card-grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--accent-10) 1px, transparent 1px),
+      linear-gradient(90deg, var(--accent-10) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* TOP ACCENT BAR */
+  .card-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    z-index: 10;
+  }
+
+  /* MAIN GRID LAYOUT */
+  .card-main {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr;
+    padding: 32px 28px 24px;
+    gap: 24px;
+  }
+
+  /* LEFT COLUMN */
+  .card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Character name block */
+  .char-name-block {
+    border-left: 4px solid var(--accent);
+    padding-left: 12px;
+  }
+
+  .char-scenario {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .char-name {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1.2;
+    word-break: break-all;
+  }
+
+  .char-role {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  /* Quote block */
+  .char-quote {
+    background: var(--accent-10);
+    border-left: 3px solid var(--accent);
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .char-quote-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+
+  .char-quote-text {
+    font-size: 12px;
+    color: #2a2a2a;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  /* Pronoun */
+  .char-pronoun {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .char-pronoun-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #999;
+    text-transform: uppercase;
+  }
+
+  .char-pronoun-value {
+    font-size: 13px;
+    color: #2a2a2a;
+    font-weight: 700;
+  }
+
+  /* Status bars HP/MP/SAN */
+  .status-block {}
+
+  .status-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .status-items {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .status-item {
+    display: grid;
+    grid-template-columns: 32px 1fr 40px;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .status-bar-bg {
+    height: 6px;
+    background: #e8e4e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .status-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  .status-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: #666;
+    text-align: right;
+  }
+
+  /* Illustration space */
+  .illust-space {
+    flex: 1;
+    border: 2px dashed var(--accent-40);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    background: var(--accent-10);
+    cursor: pointer;
+  }
+
+  .illust-space img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .illust-placeholder {
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .illust-placeholder span {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--accent-40);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .illust-plus {
+    font-size: 28px;
+    color: var(--accent-40);
+    line-height: 1;
+  }
+
+  #illust-input { display: none; }
+
+  /* RIGHT COLUMN */
+  .card-right {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Radar chart */
+  .radar-block {}
+
+  .radar-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  #radar-canvas {
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Skills list */
+  .skills-block {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .skills-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .skills-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 12px;
+  }
+
+  .skill-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+    border-bottom: 1px solid var(--accent-10);
+  }
+
+  .skill-name {
+    font-size: 10px;
+    color: #444;
+  }
+
+  .skill-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Params grid */
+  .params-block {}
+
+  .params-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .param-item {
+    background: var(--accent-10);
+    border: 1px solid var(--accent-20);
+    border-radius: 6px;
+    padding: 6px 4px;
+    text-align: center;
+  }
+
+  .param-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    display: block;
+  }
+
+  .param-value {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    display: block;
+    line-height: 1.2;
+  }
+
+  /* Bottom accent */
+  .card-bottom {
+    position: absolute;
+    bottom: 14px;
+    right: 24px;
+    z-index: 6;
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--accent-40);
+    text-transform: uppercase;
+  }
+
+  /* Corner decoration */
+  .corner-tl, .corner-br {
+    position: absolute;
+    z-index: 6;
+    width: 20px;
+    height: 20px;
+  }
+
+  .corner-tl {
+    top: 14px;
+    left: 14px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+
+  .corner-br {
+    bottom: 14px;
+    left: 14px;
+    border-bottom: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<!-- EDITOR -->
+<div class="editor">
+  <h2>CHARACTER DISPLAY EDITOR</h2>
+
+  <div style="margin-bottom:16px;">
+    <div class="input-group">
+      <label>📋 Cocofolia JSON を貼り付け</label>
+      <textarea class="json-area" id="json-input" placeholder='{"kind":"character","data":{...}}'></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="parseJSON()">▶ JSONを読み込む</button>
+    </div>
+  </div>
+
+  <div class="input-grid">
+    <div class="input-group">
+      <label>シナリオ名</label>
+      <input type="text" id="scenario" placeholder="例：深淵の招待状" oninput="updateCard()">
+    </div>
+    <div class="input-group">
+      <label>役職名</label>
+      <input type="text" id="role" placeholder="例：探索者 / 医師" oninput="updateCard()">
+    </div>
+    <div class="input-group">
+      <label>一人称</label>
+      <input type="text" id="pronoun" placeholder="例：私・僕・俺・あたし" oninput="updateCard()">
+    </div>
+    <div class="input-group">
+      <label>決めゼリフ</label>
+      <input type="text" id="quote" placeholder="例：化け物は、私が倒す。" oninput="updateCard()">
+    </div>
+  </div>
+
+  <div class="color-row">
+    <label>イメージカラー</label>
+    <input type="color" id="color-picker" value="#8B2FC9" oninput="syncColor(this.value)">
+    <input type="text" id="color-text" value="#8B2FC9" placeholder="#8B2FC9" oninput="syncColor(this.value)" maxlength="7">
+  </div>
+
+  <div class="skill-selector" id="skill-selector">
+    <h3>表示する技能を選択（複数可）</h3>
+    <div class="skill-grid" id="skill-grid"></div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-secondary" onclick="selectAllSkills()">全選択</button>
+      <button class="btn btn-secondary" onclick="clearAllSkills()">全解除</button>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top:16px;">
+    <button class="btn btn-download" onclick="downloadCard()">⬇ JPEGでダウンロード</button>
+  </div>
+</div>
+
+<!-- CARD PREVIEW -->
+<div id="card-wrapper">
+  <div id="character-card">
+    <div class="card-bg">
+      <div class="card-grid-lines"></div>
+    </div>
+    <div class="card-top-bar"></div>
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+
+    <div class="card-main">
+      <!-- LEFT -->
+      <div class="card-left">
+        <div class="char-name-block">
+          <div class="char-scenario" id="c-scenario">SCENARIO</div>
+          <div class="char-name" id="c-name">キャラクター名</div>
+          <div class="char-role" id="c-role">役職名</div>
+        </div>
+
+        <div class="char-pronoun">
+          <span class="char-pronoun-label">一人称</span>
+          <span class="char-pronoun-value" id="c-pronoun">—</span>
+        </div>
+
+        <div class="char-quote">
+          <div class="char-quote-label">QUOTE</div>
+          <div class="char-quote-text" id="c-quote">決めゼリフがここに表示されます</div>
+        </div>
+
+        <div class="status-block">
+          <div class="status-title">STATUS</div>
+          <div class="status-items" id="c-status"></div>
+        </div>
+
+        <!-- Illustration -->
+        <div class="illust-space" id="illust-space" onclick="document.getElementById('illust-input').click()">
+          <input type="file" id="illust-input" accept="image/*" onchange="loadIllust(event)">
+          <div class="illust-placeholder">
+            <div class="illust-plus">+</div>
+            <span>ILLUSTRATION</span>
+            <span>クリックして追加</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card-right">
+        <div class="params-block">
+          <div class="radar-title">ABILITY VALUES</div>
+          <div class="params-grid" id="c-params"></div>
+        </div>
+
+        <div class="radar-block">
+          <div class="radar-title">RADAR CHART</div>
+          <canvas id="radar-canvas" width="220" height="200"></canvas>
+        </div>
+
+        <div class="skills-block">
+          <div class="skills-title">SKILLS</div>
+          <div class="skills-list" id="c-skills"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-bottom">Call of Cthulhu · Character Display</div>
+  </div>
+</div>
+
+<script>
+let charData = null;
+let allSkills = [];
+let selectedSkills = new Set();
+
+const STATUS_COLORS = {
+  HP: '#e05252',
+  MP: '#5286e0',
+  SAN: '#52c07a'
+};
+
+function syncColor(val) {
+  const hex = val.startsWith('#') ? val : '#' + val;
+  document.getElementById('color-picker').value = hex.length === 7 ? hex : '#8B2FC9';
+  document.getElementById('color-text').value = hex;
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    applyColor(hex);
+  }
+}
+
+function applyColor(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  const root = document.documentElement;
+  root.style.setProperty('--accent', hex);
+  root.style.setProperty('--accent-light', lightenHex(hex, 0.4));
+  root.style.setProperty('--accent-dark', darkenHex(hex, 0.3));
+  root.style.setProperty('--accent-10', `rgba(${r},${g},${b},0.1)`);
+  root.style.setProperty('--accent-20', `rgba(${r},${g},${b},0.2)`);
+  root.style.setProperty('--accent-40', `rgba(${r},${g},${b},0.4)`);
+  if (charData) drawRadar();
+}
+
+function lightenHex(hex, amt) {
+  let r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  r=Math.min(255,Math.round(r+(255-r)*amt));
+  g=Math.min(255,Math.round(g+(255-g)*amt));
+  b=Math.min(255,Math.round(b+(255-b)*amt));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function darkenHex(hex, amt) {
+  let r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  r=Math.max(0,Math.round(r*(1-amt)));
+  g=Math.max(0,Math.round(g*(1-amt)));
+  b=Math.max(0,Math.round(b*(1-amt)));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function parseJSON() {
+  const raw = document.getElementById('json-input').value.trim();
+  try {
+    const obj = JSON.parse(raw);
+    charData = obj.data || obj;
+
+    // Parse skills from commands
+    allSkills = [];
+    if (charData.commands) {
+      const lines = charData.commands.split('\n');
+      lines.forEach(line => {
+        const m = line.match(/CCB<=(\d+)\s+【(.+?)】/);
+        if (m) allSkills.push({ name: m[2], value: parseInt(m[1]) });
+      });
+    }
+
+    // Build skill selector
+    const grid = document.getElementById('skill-grid');
+    grid.innerHTML = '';
+    selectedSkills = new Set();
+    allSkills.forEach((sk, i) => {
+      const label = document.createElement('label');
+      label.className = 'skill-check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = i;
+      cb.onchange = () => {
+        if (cb.checked) selectedSkills.add(i);
+        else selectedSkills.delete(i);
+        updateCard();
+      };
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(`${sk.name} (${sk.value})`));
+      grid.appendChild(label);
+    });
+
+    document.getElementById('skill-selector').style.display = 'block';
+    updateCard();
+    document.getElementById('character-card').style.display = 'block';
+  } catch(e) {
+    alert('JSONの形式が正しくありません。\n' + e.message);
+  }
+}
+
+function updateCard() {
+  if (!charData) return;
+
+  document.getElementById('c-name').textContent = charData.name || '—';
+  document.getElementById('c-scenario').textContent = document.getElementById('scenario').value || 'SCENARIO';
+  document.getElementById('c-role').textContent = document.getElementById('role').value || '—';
+  document.getElementById('c-pronoun').textContent = document.getElementById('pronoun').value || '—';
+  document.getElementById('c-quote').textContent = document.getElementById('quote').value || '—';
+
+  // Status
+  const statusEl = document.getElementById('c-status');
+  statusEl.innerHTML = '';
+  (charData.status || []).forEach(s => {
+    const pct = Math.round((s.value / s.max) * 100);
+    const color = STATUS_COLORS[s.label] || 'var(--accent)';
+    statusEl.innerHTML += `
+      <div class="status-item">
+        <span class="status-label" style="color:${color}">${s.label}</span>
+        <div class="status-bar-bg">
+          <div class="status-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <span class="status-value">${s.value}/${s.max}</span>
+      </div>`;
+  });
+
+  // Params
+  const paramsEl = document.getElementById('c-params');
+  paramsEl.innerHTML = '';
+  (charData.params || []).forEach(p => {
+    paramsEl.innerHTML += `
+      <div class="param-item">
+        <span class="param-label">${p.label}</span>
+        <span class="param-value">${p.value}</span>
+      </div>`;
+  });
+
+  // Skills
+  const skillsEl = document.getElementById('c-skills');
+  skillsEl.innerHTML = '';
+  const chosen = [...selectedSkills].map(i => allSkills[i]).sort((a,b) => b.value - a.value);
+  chosen.forEach(sk => {
+    skillsEl.innerHTML += `
+      <div class="skill-item">
+        <span class="skill-name">${sk.name}</span>
+        <span class="skill-val">${sk.value}</span>
+      </div>`;
+  });
+
+  drawRadar();
+}
+
+function drawRadar() {
+  if (!charData || !charData.params) return;
+  const canvas = document.getElementById('radar-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const params = charData.params;
+  const N = params.length;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W, H) * 0.38;
+  const maxVal = 20;
+
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const accentLight = getComputedStyle(document.documentElement).getPropertyValue('--accent-light').trim();
+  const accent40 = getComputedStyle(document.documentElement).getPropertyValue('--accent-40').trim();
+
+  // Grid circles
+  for (let level = 1; level <= 5; level++) {
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const angle = (Math.PI * 2 * i / N) - Math.PI/2;
+      const r = R * level / 5;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = level === 5 ? accent40 : 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = level === 5 ? 1.5 : 1;
+    ctx.stroke();
+  }
+
+  // Axes
+  for (let i = 0; i < N; i++) {
+    const angle = (Math.PI * 2 * i / N) - Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R * Math.cos(angle), cy + R * Math.sin(angle));
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  params.forEach((p, i) => {
+    const angle = (Math.PI * 2 * i / N) - Math.PI/2;
+    const val = Math.min(parseInt(p.value) || 0, maxVal);
+    const r = R * val / maxVal;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = accent40.replace('0.4', '0.18');
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dots
+  params.forEach((p, i) => {
+    const angle = (Math.PI * 2 * i / N) - Math.PI/2;
+    const val = Math.min(parseInt(p.value) || 0, maxVal);
+    const r = R * val / maxVal;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = accent;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Labels
+  ctx.font = '700 9px Space Mono, monospace';
+  ctx.fillStyle = '#555';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  params.forEach((p, i) => {
+    const angle = (Math.PI * 2 * i / N) - Math.PI/2;
+    const labelR = R + 18;
+    const x = cx + labelR * Math.cos(angle);
+    const y = cy + labelR * Math.sin(angle);
+    ctx.fillText(p.label, x, y);
+  });
+}
+
+function loadIllust(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const space = document.getElementById('illust-space');
+    let img = space.querySelector('img');
+    if (!img) {
+      img = document.createElement('img');
+      space.appendChild(img);
+    }
+    img.src = e.target.result;
+    space.querySelector('.illust-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function selectAllSkills() {
+  document.querySelectorAll('#skill-grid input[type="checkbox"]').forEach((cb, i) => {
+    cb.checked = true;
+    selectedSkills.add(i);
+  });
+  updateCard();
+}
+
+function clearAllSkills() {
+  document.querySelectorAll('#skill-grid input[type="checkbox"]').forEach(cb => cb.checked = false);
+  selectedSkills.clear();
+  updateCard();
+}
+
+function downloadCard() {
+  const card = document.getElementById('character-card');
+  if (card.style.display === 'none') {
+    alert('先にJSONを読み込んでください');
+    return;
+  }
+  html2canvas(card, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `character_${(charData?.name || 'display').replace(/\s/g,'_')}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  });
+}
+
+// Init color
+applyColor('#8B2FC9');
+</script>
+</body>
+</html>
